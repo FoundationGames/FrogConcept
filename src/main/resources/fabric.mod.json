@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "frogconcept",
+  "version": "${version}",
+
+  "name": "Wild Update: Frogs (Concept)",
+  "description": "A concept mod recreating frogs from the Minecraft Live 2021 livestream.",
+  "authors": [
+    "FoundationGames"
+  ],
+  "contact": {
+    "homepage": "",
+    "sources": ""
+  },
+
+  "license": "MIT",
+  "icon": "assets/frogconcept/icon.png",
+
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "foundationgames.frogconcept.FrogConcept"
+    ],
+    "client": [
+      "foundationgames.frogconcept.FrogConceptClient"
+    ]
+  },
+  "mixins": [
+    "frogconcept.mixins.json"
+  ],
+
+  "depends": {
+    "fabricloader": ">=0.11.3",
+    "fabric": "*",
+    "minecraft": "1.17.x",
+    "java": ">=16"
+  }
+}
