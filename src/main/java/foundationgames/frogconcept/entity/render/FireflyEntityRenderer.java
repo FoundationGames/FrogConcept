@@ -28,7 +28,7 @@ public class FireflyEntityRenderer extends EntityRenderer<FireflyEntity> {
         return false;
     }
 
-    public static void render(Camera camera, FireflyEntity entity, MatrixStack matrices, VertexConsumer buffer, VertexConsumerProvider vertices, float tickDelta) {
+    public static void render(Camera camera, FireflyEntity entity, MatrixStack matrices, VertexConsumer buffer, float tickDelta) {
         matrices.multiply(camera.getRotation());
 
         float glow = (((float) Math.sin(((float) entity.age + tickDelta) * 0.2)) * 0.5f) + 0.5f;

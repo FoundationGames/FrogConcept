@@ -1,6 +1,8 @@
 package foundationgames.frogconcept.entity;
 
 import foundationgames.frogconcept.FrogConcept;
+import net.minecraft.command.argument.EntityAnchorArgumentType;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityData;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.SpawnReason;
@@ -47,6 +49,8 @@ public class FrogEntity extends AnimalEntity implements IAnimatable {
     public static final TrackedData<Type> FROG_TYPE = DataTracker.registerData(FrogEntity.class, Type.DATA_HANDLER);
     public static final TrackedData<Integer> LOOPING_ANIMATION = DataTracker.registerData(FrogEntity.class, TrackedDataHandlerRegistry.INTEGER);
     public static final TrackedData<Integer> EAT_TIME = DataTracker.registerData(FrogEntity.class, TrackedDataHandlerRegistry.INTEGER);
+    public static final TrackedData<Float> TONGUE_ANGLE = DataTracker.registerData(FrogEntity.class, TrackedDataHandlerRegistry.FLOAT);
+    public static final TrackedData<Float> TONGUE_LENGTH = DataTracker.registerData(FrogEntity.class, TrackedDataHandlerRegistry.FLOAT);
 
     public static final String[] ANIMS = {
             "animation.frog.idle",
@@ -75,6 +79,7 @@ public class FrogEntity extends AnimalEntity implements IAnimatable {
     private Deque<Integer> animationQueue = new ArrayDeque<>();
 
     private boolean idle = true;
+    private Entity eating = null;
 
     public FrogEntity(World world) {
         this(FrogConcept.FROG, world);
@@ -92,8 +97,9 @@ public class FrogEntity extends AnimalEntity implements IAnimatable {
 
             if (getEatTime() > 0) {
                 setEatTime(getEatTime() - 1);
-                if (getEatTime() == 0 && idle) {
-                    pushQueuedAnimIndex(ANIM_CHEW);
+                if (getEatTime() == 0) {
+                    if (idle) pushQueuedAnimIndex(ANIM_CHEW);
+                    if (eating != null) eating.remove(RemovalReason.KILLED);
                 }
             }
         }
@@ -124,6 +130,16 @@ public class FrogEntity extends AnimalEntity implements IAnimatable {
         if (anim >= 0) {
             setLoopAnimIndex(anim);
         }
+    }
+
+    public void eat(Entity entity) {
+        var posDiff = entity.getPos().add(0, 0.25, 0).subtract(getPos());
+        this.lookAt(EntityAnchorArgumentType.EntityAnchor.EYES, entity.getPos());
+        pushQueuedAnimIndex(ANIM_EAT);
+        setEatTime(MAX_EAT_TIME);
+        setTongueLength((float) getPos().distanceTo(entity.getPos()));
+        setTongueAngle((float) Math.toDegrees(Math.atan2(posDiff.y, Math.sqrt((posDiff.x * posDiff.x) + (posDiff.z * posDiff.z)))));
+        this.eating = entity;
     }
 
     @Override
@@ -158,6 +174,30 @@ public class FrogEntity extends AnimalEntity implements IAnimatable {
     @Override
     protected int computeFallDamage(float fallDistance, float damageMultiplier) {
         return super.computeFallDamage(Math.max(0, fallDistance - 3), damageMultiplier);
+    }
+
+    public float getTongueExtension(float tickDelta) {
+        if (!this.idle) return 0;
+        float time = (float)getEatTime() - tickDelta;
+        float half = (float)MAX_EAT_TIME * 0.5f;
+        time -= half;
+        return (half - Math.abs(time)) / half;
+    }
+
+    public float getTongueLength() {
+        return this.dataTracker.get(TONGUE_LENGTH);
+    }
+
+    public void setTongueLength(float length) {
+        this.dataTracker.set(TONGUE_LENGTH, length);
+    }
+
+    public float getTongueAngle() {
+        return this.dataTracker.get(TONGUE_ANGLE);
+    }
+
+    public void setTongueAngle(float angle) {
+        this.dataTracker.set(TONGUE_ANGLE, angle);
     }
 
     @Override
@@ -212,14 +252,20 @@ public class FrogEntity extends AnimalEntity implements IAnimatable {
         this.dataTracker.startTracking(FROG_TYPE, Type.defaultType());
         this.dataTracker.startTracking(LOOPING_ANIMATION, ANIM_IDLE);
         this.dataTracker.startTracking(EAT_TIME, 0);
+        this.dataTracker.startTracking(TONGUE_ANGLE, 0f);
+        this.dataTracker.startTracking(TONGUE_LENGTH, 0f);
     }
 
     @Override
     public void onTrackedDataSet(TrackedData<?> data) {
         super.onTrackedDataSet(data);
 
-        if (data.equals(LOOPING_ANIMATION) && world.isClient()) {
-            updateAnimation = true;
+        if (world.isClient()) {
+            if (data.equals(LOOPING_ANIMATION)) {
+                updateAnimation = true;
+            } else if (data.equals(EAT_TIME) && getEatTime() >= 7) {
+                pushQueuedAnimIndex(ANIM_EAT);
+            }
         }
     }
 
@@ -322,7 +368,7 @@ public class FrogEntity extends AnimalEntity implements IAnimatable {
 
         @Override
         public boolean canStart() {
-            return frog.idle && frog.world.random.nextInt(30) == 0;
+            return frog.idle && frog.getEatTime() <= 0 && frog.world.random.nextInt(40) == 0;
         }
 
         @Override
@@ -330,10 +376,7 @@ public class FrogEntity extends AnimalEntity implements IAnimatable {
             var flies = frog.world.getEntitiesByClass(FireflyEntity.class, frog.getBoundingBox().expand(2, 3, 2), e -> true);
             if (flies.size() > 0) {
                 var fly = flies.get(0);
-                frog.lookControl.lookAt(fly.getX(), fly.getY(), fly.getZ());
-                frog.pushQueuedAnimIndex(ANIM_EAT);
-                frog.setEatTime(MAX_EAT_TIME);
-                fly.remove(RemovalReason.KILLED);
+                frog.eat(fly);
             }
         }
     }

@@ -31,7 +31,7 @@ public class FrogConceptClient implements ClientModInitializer {
 
                     var pos = firefly.getLerpedPos(context.tickDelta());
                     matrices.translate(pos.getX(), pos.getY(), pos.getZ());
-                    FireflyEntityRenderer.render(context.camera(), firefly, matrices, buffer, context.consumers(), context.tickDelta());
+                    FireflyEntityRenderer.render(context.camera(), firefly, matrices, buffer, context.tickDelta());
 
                     matrices.pop();
                 }
