@@ -1,4 +1,9 @@
 {
   "entity.frogconcept.frog": "Frog",
-  "item.frogconcept.frog_spawn_egg": "Frog Spawn Egg"
+  "entity.frogconcept.tadpole": "Tadpole",
+  "entity.frogconcept.firefly": "Firefly",
+
+  "item.frogconcept.frog_spawn_egg": "Frog Spawn Egg",
+  "item.frogconcept.tadpole_spawn_egg": "Tadpole Spawn Egg",
+  "item.frogconcept.tadpole_bucket": "Bucket of Tadpole"
 }

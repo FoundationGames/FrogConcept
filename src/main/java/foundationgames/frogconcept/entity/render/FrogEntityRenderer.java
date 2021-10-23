@@ -23,6 +23,11 @@ public class FrogEntityRenderer extends GeoEntityRenderer<FrogEntity> {
     }
 
     @Override
+    public RenderLayer getRenderType(FrogEntity animatable, float partialTicks, MatrixStack stack, VertexConsumerProvider renderTypeBuffer, VertexConsumer vertexBuilder, int packedLightIn, Identifier textureLocation) {
+        return RenderLayer.getEntityCutoutNoCull(getTextureLocation(animatable));
+    }
+
+    @Override
     public void renderEarly(FrogEntity entity, MatrixStack matrices, float ticks, VertexConsumerProvider vertexConsumers, VertexConsumer buffer, int light, int overlay, float red, float green, float blue, float partialTicks) {
         float tickDelta = MinecraftClient.getInstance().getTickDelta();
         float ext = entity.getTongueExtension(tickDelta);

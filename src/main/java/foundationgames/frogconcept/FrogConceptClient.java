@@ -1,10 +1,13 @@
 package foundationgames.frogconcept;
 
 import foundationgames.frogconcept.entity.FireflyEntity;
+import foundationgames.frogconcept.entity.FrogEntity;
 import foundationgames.frogconcept.entity.render.FireflyEntityRenderer;
 import foundationgames.frogconcept.entity.render.FrogEntityRenderer;
+import foundationgames.frogconcept.entity.render.TadpoleEntityRenderer;
 import foundationgames.frogconcept.mixin.WorldRendererAccess;
 import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import net.minecraft.client.render.RenderLayer;
@@ -13,6 +16,7 @@ public class FrogConceptClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         EntityRendererRegistry.register(FrogConcept.FROG, FrogEntityRenderer::new);
+        EntityRendererRegistry.register(FrogConcept.TADPOLE, TadpoleEntityRenderer::new);
         EntityRendererRegistry.register(FrogConcept.FIREFLY, FireflyEntityRenderer::new);
 
         WorldRenderEvents.END.register(context -> {
@@ -39,6 +43,17 @@ public class FrogConceptClient implements ClientModInitializer {
             immediate.draw();
 
             matrices.pop();
+        });
+
+        ClientPlayNetworking.registerGlobalReceiver(FrogConcept.id("frog_queue_anim"), (client, handler, buf, responseSender) -> {
+            if (client.world == null) return;
+            var entity = client.world.getEntityById(buf.readInt());
+            int anim = buf.readInt();
+            client.execute(() -> {
+                if (entity instanceof FrogEntity frog) {
+                    frog.pushQueuedAnimIndex(anim);
+                }
+            });
         });
     }
 }

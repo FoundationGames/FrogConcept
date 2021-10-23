@@ -3,9 +3,9 @@ package foundationgames.frogconcept;
 import com.google.common.collect.Lists;
 import foundationgames.frogconcept.entity.FireflyEntity;
 import foundationgames.frogconcept.entity.FrogEntity;
+import foundationgames.frogconcept.entity.TadpoleEntity;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.biome.v1.BiomeModifications;
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
@@ -14,10 +14,13 @@ import net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityTypeBuilder;
 import net.minecraft.entity.EntityDimensions;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.SpawnGroup;
+import net.minecraft.fluid.Fluids;
+import net.minecraft.item.EntityBucketItem;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemGroup;
 import net.minecraft.item.SpawnEggItem;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.sound.SoundEvents;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.registry.Registry;
@@ -36,6 +39,12 @@ public class FrogConcept implements ModInitializer {
             FabricEntityTypeBuilder.<FrogEntity>create(SpawnGroup.CREATURE, FrogEntity::new).dimensions(EntityDimensions.fixed(0.75f, 0.5f)).build()
     );
 
+    public static final EntityType<TadpoleEntity> TADPOLE = Registry.register(
+            Registry.ENTITY_TYPE,
+            id("tadpole"),
+            FabricEntityTypeBuilder.<TadpoleEntity>create(SpawnGroup.WATER_CREATURE, TadpoleEntity::new).dimensions(EntityDimensions.fixed(0.25f, 0.125f)).build()
+    );
+
     public static final EntityType<FireflyEntity> FIREFLY = Registry.register(
             Registry.ENTITY_TYPE,
             id("firefly"),
@@ -46,6 +55,14 @@ public class FrogConcept implements ModInitializer {
             new SpawnEggItem(FROG, 0xa66341, 0x96774c, new Item.Settings().group(ItemGroup.MISC))
     );
 
+    public static final Item TADPOLE_SPAWN_EGG = Registry.register(Registry.ITEM, id("tadpole_spawn_egg"),
+            new SpawnEggItem(TADPOLE, 0x654b39, 0x442c1c, new Item.Settings().group(ItemGroup.MISC))
+    );
+
+    public static final Item TADPOLE_BUCKET = Registry.register(Registry.ITEM, id("tadpole_bucket"),
+            new EntityBucketItem(TADPOLE, Fluids.WATER, SoundEvents.ITEM_BUCKET_EMPTY_FISH, new Item.Settings().group(ItemGroup.MISC).maxCount(1))
+    );
+
     public static final List<Biome.Category> FIREFLY_BIOME_CATEGORIES = Lists.newArrayList(Biome.Category.SWAMP);
 
     @Override
@@ -53,14 +70,23 @@ public class FrogConcept implements ModInitializer {
         GeckoLib.initialize();
 
         FabricDefaultAttributeRegistry.register(FROG, FrogEntity.createAttributes());
+        FabricDefaultAttributeRegistry.register(TADPOLE, TadpoleEntity.createAttributes());
 
         BiomeModifications.addSpawn(ctx ->
-                ctx.getBiome().getCategory() == Biome.Category.SWAMP || ctx.getBiome().getCategory() == Biome.Category.JUNGLE || ctx.getBiomeKey() == BiomeKeys.FROZEN_RIVER || ctx.getBiomeKey() == BiomeKeys.DESERT_LAKES,
+                ctx.getBiome().getCategory() == Biome.Category.SWAMP || ctx.getBiomeKey() == BiomeKeys.DESERT_LAKES,
                 SpawnGroup.CREATURE, FROG, 50, 1, 3
+        );
+        BiomeModifications.addSpawn(ctx ->
+                        ctx.getBiome().getCategory() == Biome.Category.JUNGLE || ctx.getBiomeKey() == BiomeKeys.FROZEN_RIVER,
+                SpawnGroup.CREATURE, FROG, 28, 1, 3
         );
         BiomeModifications.addSpawn(ctx ->
                         ctx.getBiome().getPrecipitation() == Biome.Precipitation.SNOW && ctx.getBiomeKey() != BiomeKeys.FROZEN_RIVER,
                 SpawnGroup.CREATURE, FROG, 15, 1, 3
+        );
+        BiomeModifications.addSpawn(ctx ->
+                        ctx.getBiome().getCategory() == Biome.Category.SWAMP || ctx.getBiome().getCategory() == Biome.Category.JUNGLE || ctx.getBiome().getPrecipitation() == Biome.Precipitation.SNOW,
+                SpawnGroup.WATER_CREATURE, TADPOLE, 70, 1, 3
         );
 
         ServerTickEvents.START_WORLD_TICK.register(world -> {
@@ -88,17 +114,6 @@ public class FrogConcept implements ModInitializer {
                     }
                 }
             }
-        });
-
-        ClientPlayNetworking.registerGlobalReceiver(id("frog_queue_anim"), (client, handler, buf, responseSender) -> {
-            if (client.world == null) return;
-            var entity = client.world.getEntityById(buf.readInt());
-            int anim = buf.readInt();
-            client.execute(() -> {
-                if (entity instanceof FrogEntity frog) {
-                    frog.pushQueuedAnimIndex(anim);
-                }
-            });
         });
     }
 
